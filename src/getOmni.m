@@ -14,7 +14,7 @@ function data = getOmni(date)
     file = fullfile(fileDir, fileName);
 
     if ~isfile(file)
-        if ~isdir(fileDir)
+        if ~isfolder(fileDir)
             mkdir data omni
         end
         websave(file, url);
