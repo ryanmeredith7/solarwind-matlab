@@ -21,6 +21,7 @@ function data = getOmni(date)
     end
 
     data = cdfread(file, "Variables", "Pressure", "CombineRecords", true);
+    data(data == 99.99) = NaN;
 
 end
 
