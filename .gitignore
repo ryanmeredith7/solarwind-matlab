@@ -1,2 +1,4 @@
 data/omni/*.cdf
+data/ismr/*.ismr.gz
+src/private/mkFTP.*
 log.txt
