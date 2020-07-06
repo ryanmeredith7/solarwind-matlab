@@ -1,7 +1,9 @@
 function tbl = getTec(date, loc)
     arguments
         date (1,1) datetime {mustBeAfter(date, 2013)}
-        loc (1,1) string
+        loc (1,1) string {mustBeMember(loc, ["arc", "arv", "chu", "cor", ...
+            "edm", "fsi", "fsm", "gjo", "kug", "mcm", "rab", "ran", "rep", ...
+            "sac"])}
     end
 
     yr = year(date);
@@ -22,13 +24,35 @@ function tbl = getTec(date, loc)
 
         try
             ftpObj = mkFTP();
-        catch
-            error("FTP not available, must download files manually.");
+        catch exception
+            if exception.identifier == "MATLAB:UndefinedFunction"
+                error("FTP not available, must download files manually.");
+            else
+                rethrow(exception);
+            end
         end
+
         ftpcln = onCleanup(@() close(ftpObj));
 
-        cd(ftpObj, sprintf("gps/ismr/%4i/%03i/%02i", yr, doy, hr));
-        mget(ftpObj, fileName, fileDir);
+        try
+            cd(ftpObj, sprintf("gps/ismr/%4i/%03i/%02i", yr, doy, hr));
+        catch exception
+            if exception.identifier == "MATLAB:ftp:NoSuchDirectory"
+                error("No TEC data for %s", date);
+            else
+                rethrow(exception);
+            end
+        end
+
+        try
+            mget(ftpObj, fileName, fileDir);
+        catch exception
+            if exception.identifier == "MATLAB:ftp:FileUnavailable"
+                error("No TEC data for %s at %s", date, loc);
+            else
+                rethrow(exception);
+            end
+        end
 
     end
 
@@ -59,24 +83,5 @@ function tbl = getTec(date, loc)
     opts = setvaropts(opts, 17:24, "Type", "double", "FillValue", NaN);
 
     tbl = readtable(tmpFile, opts, "ReadVariableNames", false);
-
-    tbl = mergevars(tbl, 5:6, "NewVariableName", "tec1");
-    tbl = mergevars(tbl, 6:7, "NewVariableName", "tec2");
-    tbl = mergevars(tbl, 7:8, "NewVariableName", "tec3");
-    tbl = mergevars(tbl, 8:9, "NewVariableName", "tec4");
-    tbl = stack(tbl, 5:8);
-
-    time = datetime(1980, 1, 6, "TimeZone", "UTCLeapSeconds") ...
-        + days(7 * tbl{:,1}) + seconds(tbl{:,2});
-    time(tbl{:,5} == "tec1") = time(tbl{:,5} == "tec1") - seconds(45);
-    time(tbl{:,5} == "tec2") = time(tbl{:,5} == "tec2") - seconds(30);
-    time(tbl{:,5} == "tec3") = time(tbl{:,5} == "tec3") - seconds(15);
-
-    tbl = table2timetable(tbl(:,[3,4,6]), "RowTimes", time);
-    tbl = splitvars(tbl, 3, "NewVariableNames", ["tec", "dtec"]);
-    tbl = renamevars(tbl, 2, "elev");
-    tbl = unstack(tbl, 2:4, 1);
-
-    keyboard
 
 end
