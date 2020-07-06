@@ -1,9 +1,9 @@
-function tbl = preProcessTec(tbl)
+function tbl = processTec(tbl)
     arguments
-        tbl (:,12) table {mustBeNonEmpty}
+        tbl (:,12) table {mustBeNonempty}
     end
 
-    tbl(tbl{:,4} < 10,:) = [];
+    tbl(tbl{:,4} <= 10,:) = [];
 
     tbl = mergevars(tbl, 5:6, "NewVariableName", "tec1");
     tbl = mergevars(tbl, 6:7, "NewVariableName", "tec2");
@@ -19,5 +19,21 @@ function tbl = preProcessTec(tbl)
 
     tbl = table2timetable(tbl(:,[3,6]), "RowTimes", time);
     tbl = unstack(tbl, 2, 1, "VariableNamingRule", "preserve");
+
+    if ~isregular(tbl)
+        error("Not implemented yet")
+    end
+
+    tbl = varfun(@prn, tbl);
+
+end
+
+function out = prn(in)
+
+    atec = in(:,1);
+    rtec = cumsum(in(:,2), 'omitnan');
+    rtec(isnan(in(:,2))) = NaN;
+
+    out = rtec + median(atec - rtec, 'omitnan');
 
 end
