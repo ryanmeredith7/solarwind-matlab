@@ -20,10 +20,10 @@ function data = getOmni(date)
             + "%1$4i/omni_hro2_1min_%1$4i%2$02i01_v01.cdf", year, month);
 
         try
-            outFile = websave(file, url);
+            websave(file, url);
         catch exception
-            if isfile(outFile)
-                delete(outFile);
+            if isfile(file + ".html")
+                delete(file + ".html");
             end
             if exception.identifier == "MATLAB:webservice:HTTP404StatusCodeError"
                 error("No OMNI data for %s", date);
