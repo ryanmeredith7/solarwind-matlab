@@ -3,6 +3,12 @@ function [jumpPos, jumpMag] = findJumps(inData)
         inData (:,:) {mustBeNumeric,mustBeNonempty,mustBeReal}
     end
 
+    if ~isa(gcp("nocreate"), "parallel.ThreadPool")
+        delete(gcp("nocreate"));
+        pp = parpool("threads");
+        ppcln = onCleanup(@() delete(pp));
+    end
+
     buf = 200;
 
     parts = table( ...
@@ -63,9 +69,9 @@ function part = mkPart(inData, a, b, level, loss)
 
         s = zeros(2, b - a - 1);
 
-        for i = 1:b-a-1
-            s(1,i) = sum((x1(1:i) - m1(i)) .^ 2, 'omitnan');
-            s(2,i) = sum((x2(i:end) - m2(i)) .^ 2, 'omitnan');
+        parfor i = 1:b-a-1
+            s(:,i) = [sum((x1(1:i) - m1(i)) .^ 2, 'omitnan'); ...
+                sum((x2(i:end) - m2(i)) .^ 2, 'omitnan')];
         end
 
         [m, i] = min(sum(s), [], 'omitnan');
