@@ -30,10 +30,18 @@ end
 
 function out = prn(in)
 
-    atec = in(:,1);
-    rtec = cumsum(in(:,2), 'omitnan');
-    rtec(isnan(in(:,2))) = NaN;
+    keyboard
 
-    out = rtec + median(atec - rtec, 'omitnan');
+    dtec = in(:,2);
+    dtec(abs(dtec) > 6) = NaN;
+
+    di = diff(isnan([NaN; dtec; NaN]));
+
+    out = NaN(length(dtec), 1);
+
+    for inds = [find(di == -1); find(di == 1) - 1]
+        rtec = cumsum(dtec(inds(1):inds(2)));
+        out(inds(1):inds(2)) = rtec + median(in(inds(1):inds(2),1) - rtec);
+    end
 
 end
