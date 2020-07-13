@@ -20,17 +20,11 @@ function tbl = processTec(tbl)
     tbl = table2timetable(tbl(:,[3,6]), "RowTimes", time);
     tbl = unstack(tbl, 2, 1, "VariableNamingRule", "preserve");
 
-    if ~isregular(tbl)
-        error("Not implemented yet")
-    end
-
     tbl = varfun(@prn, tbl);
 
 end
 
 function out = prn(in)
-
-    keyboard
 
     dtec = in(:,2);
     dtec(abs(dtec) > 6) = NaN;
@@ -39,7 +33,7 @@ function out = prn(in)
 
     out = NaN(length(dtec), 1);
 
-    for inds = [find(di == -1); find(di == 1) - 1]
+    for inds = [find(di == -1), find(di == 1) - 1].'
         rtec = cumsum(dtec(inds(1):inds(2)));
         out(inds(1):inds(2)) = rtec + median(in(inds(1):inds(2),1) - rtec);
     end
