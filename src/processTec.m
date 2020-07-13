@@ -27,7 +27,7 @@ end
 function out = prn(in)
 
     dtec = in(:,2);
-    dtec(abs(dtec) > 6) = NaN;
+    dtec(abs(dtec) > 3) = NaN;
 
     di = diff(isnan([NaN; dtec; NaN]));
 
