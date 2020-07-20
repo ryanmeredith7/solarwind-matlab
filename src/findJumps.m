@@ -1,6 +1,6 @@
 function [jumpPos, jumpMag] = findJumps(inData)
     arguments
-        inData (:,:) {mustBeNumeric,mustBeNonempty,mustBeReal}
+        inData {mustBeNumeric,mustBeNonempty,mustBeReal}
     end
 
     if ~isa(gcp("nocreate"), "parallel.ThreadPool")
@@ -11,14 +11,16 @@ function [jumpPos, jumpMag] = findJumps(inData)
 
     buf = 200;
 
-    parts = table( ...
-        zeros(buf, 1, "int32"), zeros(buf, 1, "int32"), ...
-        zeros(buf, 1, "double"), zeros(buf, 1, "double"), ...
-        zeros(buf, 1, "int32"), zeros(buf, 1, "double"), ...
-        zeros(buf, 2, "double"), zeros(buf, 2, "double"), ...
+    emptyParts = @(n) table( ...
+        zeros(n, 1, "int32"), zeros(n, 1, "int32"), ...
+        zeros(n, 1, "double"), zeros(n, 1, "double"), ...
+        zeros(n, 1, "int32"), zeros(n, 1, "double"), ...
+        zeros(n, 2, "double"), zeros(n, 2, "double"), ...
         'VariableNames', [ ...
             "start", "finish", "level", "loss", ...
             "split", "diff", "levels", "losses" ] );
+
+    parts = emptyParts(buf);
 
     level = mean(inData(:), 'omitnan');
 
@@ -31,16 +33,18 @@ function [jumpPos, jumpMag] = findJumps(inData)
 
     k = 1;
 
-    while lossDiff > 120
+    while lossDiff > 1000
 
         if k >= buf
-            parts = [parts; parts(1:50)];
+            parts = [parts; emptyParts(50)]; %#ok<AGROW>
             buf = buf + 50;
         end
 
         k = k + 1;
 
         [parts(splitInd,:), parts(k,:)] = splitPart(inData, parts(splitInd,:));
+
+%       viewJumps(inData, parts(1:k,:)); keyboard;
 
         [lossDiff, splitInd] = max(parts.diff(1:k), [], 'omitnan');
 
@@ -52,6 +56,8 @@ function [jumpPos, jumpMag] = findJumps(inData)
 
     jumpPos = parts.start;
     jumpMag = parts.level;
+
+%   viewJumps(inData, parts);
 
 end
 
@@ -94,4 +100,12 @@ function [p1, p2] = splitPart(inData, part)
     p2 = mkPart(inData, part.split, part.finish, ...
         part.levels(2), part.losses(2));
 
+end
+
+function viewJumps(data, jumps)
+    m = zeros(numel(data), 1);
+    for i = 1:height(jumps)
+        m(jumps.start(i):jumps.finish(i)) = jumps.level(i);
+    end
+    plot([data(:), m]);
 end

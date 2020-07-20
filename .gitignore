@@ -1,4 +1,6 @@
 data/omni/*.cdf
 data/ismr/*.ismr.gz
+data/jumps.mat
+data/jumps.txt
 src/private/mkFTP.*
 log.txt

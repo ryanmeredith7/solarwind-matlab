@@ -1,4 +1,4 @@
-function data = getOmni(date)
+function [data, time] = getOmni(date)
     arguments
         date (1,1) datetime {mustBeAfter(date, 1995)}
     end
@@ -34,7 +34,13 @@ function data = getOmni(date)
 
     end
 
-    data = cdfread(file, "Variables", "Pressure", "CombineRecords", true);
+    raw = cdfread(file, "Variables", ["Epoch", "Pressure"], ...
+        "CombineRecords", true, "ConvertEpochToDatenum", true);
+
+    data = raw{2};
     data(data == single(99.99)) = NaN;
+
+    time = datetime(raw{1}, "ConvertFrom", "datenum", ...
+        "TimeZone", "UTCLeapSeconds");
 
 end
