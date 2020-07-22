@@ -1,5 +1,7 @@
 data/omni/*.cdf
 data/ismr/*.ismr.gz
+data/figures/*
+data/ismr_opts.mat
 data/jumps.mat
 data/jumps.txt
 src/private/mkFTP.*

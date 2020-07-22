@@ -1,5 +1,5 @@
-format compact
-format shortG
-diary log.txt
+format compact;
+format shortG;
+diary log.txt;
 
-parpool threads
+parpool threads;
