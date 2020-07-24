@@ -1,5 +1,5 @@
-data/omni/*.cdf
-data/ismr/*.ismr.gz
+data/omni.7z
+data/ismr.7z
 data/figures/*
 data/ismr_opts.mat
 data/jumps.mat

@@ -6,33 +6,49 @@ function [data, time] = getOmni(date)
     [year, month] = ymd(date);
 
     fileName = sprintf("%4i-%02i.cdf", year, month);
-    fileDir = fullfile("data", "omni");
-    file = fullfile(fileDir, fileName);
+    archive = fullfile("data", "omni.7z");
+    file = tempdir + fileName;
 
-    if ~isfile(file)
+    try
 
-        if ~isfolder(fileDir)
-            mkdir data omni;
-        end
+        get7zip(archive, fileName, tempdir);
 
-        url = sprintf(...
-            "https://cdaweb.gsfc.nasa.gov/pub/data/omni/omni_cdaweb/hro2_1min/" ...
-            + "%1$4i/omni_hro2_1min_%1$4i%2$02i01_v01.cdf", year, month);
+    catch err
 
-        try
-            websave(file, url);
-        catch exception
-            if isfile(file + ".html")
-                delete(file + ".html");
+        if err.identifier == "g7zip:ArchiveIncomplete"
+
+            if ~isfolder("data")
+                mkdir("data");
             end
-            if exception.identifier == "MATLAB:webservice:HTTP404StatusCodeError"
-                error("No OMNI data for %s", date);
-            else
-                rethrow(exception);
+
+            try
+                websave(file, sprintf("https://cdaweb.gsfc.nasa.gov/pub/data/" ...
+                    + "omni/omni_cdaweb/hro2_1min/%1$4i/" ...
+                    + "omni_hro2_1min_%1$4i%2$02i01_v01.cdf", ...
+                    year, month));
+            catch exception
+                if isfile(file + ".html")
+                    delete(file + ".html");
+                end
+                if exception.identifier ...
+                        == "MATLAB:webservices:HTTP404StatusCodeError"
+                    error("No OMNI data for %s.", date);
+                else
+                    rethrow(exception);
+                end
             end
+
+            add7zip(archive, file);
+
+        else
+
+            rethrow(err);
+
         end
 
     end
+
+    delFile = onCleanup(@() delete(file));
 
     raw = cdfread(file, "Variables", ["Epoch", "Pressure"], ...
         "CombineRecords", true, "ConvertEpochToDatenum", true);

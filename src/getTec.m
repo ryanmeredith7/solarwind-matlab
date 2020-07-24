@@ -12,57 +12,72 @@ function tbl = getTec(date, loc)
 
     hr = hour(date);
 
-    fileName = sprintf("%sc%2i%03i%c.ismr.gz", loc, yr - 2000, doy, hr + 97);
-    fileDir = fullfile("data", "ismr");
-    file = fullfile(fileDir, fileName);
+    fileName = sprintf("%sc%2i%03i%c.ismr", loc, yr - 2000, doy, hr + 97);
+    archive = fullfile("data", "ismr.7z");
+    file = tempdir + fileName;
 
-    if ~isfile(file)
+    try
 
-        if ~isfolder(fileDir)
-            mkdir(fileDir);
-        end
+        get7zip(archive, fileName, tempdir);
 
-        try
-            ftpObj = mkFTP();
-        catch exception
-            if exception.identifier == "MATLAB:UndefinedFunction"
-                error("FTP not available, must download files manually.");
-            else
-                rethrow(exception);
+    catch err
+
+        if err.identifier == "g7zip:ArchiveIncomplete"
+
+            if ~isfolder("data")
+                mkdir("data");
             end
-        end
 
-        ftpcln = onCleanup(@() ftpObj.close());
-
-        try
-            ftpObj.cd(sprintf("gps/ismr/%4i/%03i/%02i", yr, doy, hr));
-        catch exception
-            if exception.identifier == "MATLAB:ftp:NoSuchDirectory"
-                error("No TEC data for %s", date);
-            else
-                rethrow(exception);
+            try
+                ftpObj = mkFTP();
+            catch exception
+                if exception.identifier == "MATLAB:UndefinedFunction"
+                    error("FTP not available, must download files manually.");
+                else
+                    rethrow(exception);
+                end
             end
-        end
 
-        try
-            ftpObj.mget(fileName, fileDir);
-        catch exception
-            if exception.identifier == "MATLAB:ftp:FileUnavailable"
-                error("No TEC data for %s at %s", date, loc);
-            else
-                rethrow(exception);
+            ftpcln = onCleanup(@() ftpObj.close());
+
+            try
+                ftpObj.cd(sprintf("gps/ismr/%4i/%03i/%02i", yr, doy, hr));
+            catch exception
+                if exception.identifier == "MATLAB:ftp:NoSuchDirectory"
+                    error("ISMR:NoData", "No TEC data for %s", date);
+                else
+                    rethrow(exception);
+                end
             end
+
+            try
+                ftpObj.mget(fileName + ".gz", tempdir);
+            catch exception
+                if exception.identifier == "MATLAB:ftp:FileUnavailable"
+                    error("ISMR:NoData", "No TEC data for %s at %s", date, loc);
+                else
+                    rethrow(exception);
+                end
+            end
+
+            gunzip(file + ".gz");
+            delete(file + ".gz");
+
+            add7zip(archive, file);
+
+        else
+
+            rethrow(err);
+
         end
 
     end
 
-    tmpFile = gunzip(file, tempdir);
-    tmpFile = tmpFile{1};
-    tmpcln = onCleanup(@() delete(tmpFile));
+    delFile = onCleanup(@() delete(file));
 
     opts = getOpts();
 
-    tbl = readtable(tmpFile, opts, "ReadVariableNames", false);
+    tbl = readtable(file, opts, "ReadVariableNames", false);
 
     assert(~isempty(tbl), "File is empty.");
 
@@ -72,33 +87,43 @@ function opts = getOpts()
 
     optsFile = fullfile("data", "ismr_opts.mat");
 
-    if isfile(optsFile)
+    try
+
         load(optsFile, "opts");
-    else
 
-        opts = delimitedTextImportOptions( ...
-            "NumVariables", 24, ...
-            "SelectedVariableNames", [1:3, 6, 17:24], ...
-            "DataLines", 1, ...
-            "Delimiter", ',', ...
-            "WhiteSpace", ' ', ...
-            "ConsecutiveDelimitersRule", "error", ...
-            "LeadingDelimitersRule", "error", ...
-            "MissingRule", "fill", ...
-            "EmptyLineRule", "error", ...
-            "ImportErrorRule", "error", ...
-            "ExtraColumnsRule", "ignore") ...
-            .setvaropts( ...
-                "QuoteRule", "error", ...
-                "EmptyFieldRule", "error", ...
-                "TreatAsMissing", "\s*nan") ...
-            .setvaropts(1, "Type", "int16", "FillValue", -1) ...
-            .setvaropts(2, "Type", "int32", "FillValue", -1) ...
-            .setvaropts(3, "Type", "uint8", "FillValue", 255) ...
-            .setvaropts(6, "Type", "int8", "FillValue", -128) ...
-            .setvaropts(17:24, "Type", "double", "FillValue", NaN);
+    catch exception
 
-        save(optsFile, "opts");
+        if exception.identifier == "MATLAB:load:couldNotReadFile"
+
+            opts = delimitedTextImportOptions( ...
+                "NumVariables", 24, ...
+                "SelectedVariableNames", [1:3, 6, 17:24], ...
+                "DataLines", 1, ...
+                "Delimiter", ',', ...
+                "WhiteSpace", ' ', ...
+                "ConsecutiveDelimitersRule", "error", ...
+                "LeadingDelimitersRule", "error", ...
+                "MissingRule", "fill", ...
+                "EmptyLineRule", "error", ...
+                "ImportErrorRule", "error", ...
+                "ExtraColumnsRule", "ignore") ...
+                .setvaropts( ...
+                    "QuoteRule", "error", ...
+                    "EmptyFieldRule", "error", ...
+                    "TreatAsMissing", "\s*nan") ...
+                .setvaropts(1, "Type", "int16", "FillValue", -1) ...
+                .setvaropts(2, "Type", "int32", "FillValue", -1) ...
+                .setvaropts(3, "Type", "uint8", "FillValue", 255) ...
+                .setvaropts(6, "Type", "int8", "FillValue", -128) ...
+                .setvaropts(17:24, "Type", "double", "FillValue", NaN);
+
+            save(optsFile, "opts");
+
+        else
+
+            rethrow(exception);
+
+        end
 
     end
 
