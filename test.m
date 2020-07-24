@@ -7,21 +7,15 @@ locs = ["arc", "arv", "chu", "cor", "edm", "fsi", "fsm", "gjo", "kug", ...
 jumps = datetime(readmatrix("data/jumps.txt", "OutputType", "string", ...
     "Delimiter", ','), "TimeZone", "UTCLeapSeconds").';
 
-for jump = jumps(39:end)
+for jump = jumps
     for loc = locs
-        try
-            stackedplot(processTec(getTec(jump, loc)));
-        catch err
-            if startsWith(err.message, ["No TEC data", "File is empty"])
-                continue;
-            else
-                rethrow(err);
-            end
+        file = fullfile("data", "figures", datestr(jump, "yyyy-mm-dd-HH"), ...
+            loc + ".fig");
+        if isfile(file)
+            openfig(file);
+            title(loc + " - " + string(jump));
+            keyboard;
+            close(gcf);
         end
-        dir = fullfile("data", "figures", datestr(jump, "yyyy-mm-dd-HH"));
-        if ~isfolder(dir)
-            mkdir(dir);
-        end
-        savefig(fullfile(dir, loc));
     end
 end
