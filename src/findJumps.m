@@ -63,7 +63,9 @@ end
 
 function part = mkPart(inData, a, b, level, loss)
 
-    if b - a > 1
+    n = b - a - 1;
+
+    if n > 0
 
         x1 = inData(a:b-1);
         x2 = inData(a+1:b);
@@ -73,9 +75,9 @@ function part = mkPart(inData, a, b, level, loss)
         m2 = cumsum(x2, 'omitnan', 'reverse') ...
             ./ cumsum(~isnan(x2), 'reverse');
 
-        s = zeros(2, b - a - 1);
+        s = zeros(2, n);
 
-        parfor i = 1:b-a-1
+        parfor i = 1:n
             s(:,i) = [sum((x1(1:i) - m1(i)) .^ 2, 'omitnan'); ...
                 sum((x2(i:end) - m2(i)) .^ 2, 'omitnan')];
         end
