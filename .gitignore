@@ -6,3 +6,4 @@ data/jumps.mat
 data/jumps.txt
 src/private/mkFTP.*
 log.txt
+data/tecData.mat

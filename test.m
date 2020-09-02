@@ -29,14 +29,38 @@ for jump = jumps
         n = length(items);
         if n <= 0, continue; end
 
-        tecData(i).(loc) = NaN(n, 1);
+        tecData(i).(loc) = table('Size', [n, 5], 'VariableTypes', ["uint8", ...
+            "datetime", "doubleNaN", "datetime", "doubleNaN"], ...
+            'VariableNames', ["prn", "lowTime", "lowVal", "highTime", ...
+            "highVal"]);
+
+        tecData(i).(loc).lowTime.TimeZone = "UTCLeapSeconds";
+        tecData(i).(loc).highTime.TimeZone = "UTCLeapSeconds";
 
         for j = 1:n
+
             fig = openfig(fullfile(folder, items(j).name));
-            tecData(i).(loc)(j) = input("TEC data entry: ")
+
+            tecData(i).(loc).prn(j) = sscanf(items(j).name, loc + "-prn_%02u.fig");
+
+            input("Select low data point.", 's');
+
+            dt = findobj(fig, "Type", "DataTip");
+
+            if ~isempty(dt)
+                tecData(i).(loc).lowTime(j) = dt.X;
+                tecData(i).(loc).lowVal(j) = dt.Y;
+                delete(dt);
+                input("Select high data point.", 's');
+                dt = findobj(fig, "Type", "DataTip");
+                tecData(i).(loc).highTime(j) = dt.X;
+                tecData(i).(loc).highVal(j) = dt.Y;
+            end
+
             if isgraphics(fig, "figure")
                 close(fig);
             end
+
         end
 
     end
@@ -46,7 +70,7 @@ for jump = jumps
     end
 
     if startsWith(input("Save and exit? ", 's'), 'y', "IgnoreCase", true)
-        save(fullfile("data", "currentJump.mat"), "tecData");
+        save(fullfile("data", "tecData.mat"), "tecData");
         return;
     end
 
